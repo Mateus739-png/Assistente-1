@@ -39,7 +39,10 @@ from .web import (
     abrir_google,
     pesquisar_google,
     pesquisar_youtube,
-    pesquisar_spotify
+    pesquisar_spotify,
+    extrair_pedido_spotify,
+    abrir_video_youtube,
+    extrair_consulta_video_youtube,
 )
 
 from .sistema import (
@@ -131,6 +134,16 @@ def normalizar_texto(texto):
     texto = texto.lower().strip()
     texto = re.sub(r"[.,!?;:]", "", texto)
 
+    # Remove introduções comuns de fala antes de identificar a intenção.
+    texto = re.sub(
+        r"^(?:(?:jarvis)\s+)?(?:(?:por favor|por gentileza)\s+)?"
+        r"(?:(?:você poderia|voce poderia|poderia|você pode|voce pode|"
+        r"pode por favor|quero que você|quero que voce|eu gostaria que você|"
+        r"eu gostaria que voce|eu quero)\s+)+",
+        "",
+        texto,
+    )
+
     substituicoes = {
         "voce": "você",
         "memoria": "memória",
@@ -146,13 +159,41 @@ def normalizar_texto(texto):
         "sexta feira": "sexta-feira",
         "vs-code": "vs code",
         "car x street": "carx street",
+        "tradução": "traduzir",
+        "traducao": "traduzir",
     }
 
     for errado, correto in substituicoes.items():
         texto = re.sub(rf"\b{re.escape(errado)}\b", correto, texto)
 
-    for palavra in ["por favor", "porfa", "pfv"]:
-        texto = texto.replace(palavra, "")
+    # Unifica formas comuns de pedir para abrir/iniciar e pesquisar/buscar.
+    sinonimos = {
+        "inicie": "iniciar",
+        "inicia": "iniciar",
+        "inicialize": "iniciar",
+        "inicializa": "iniciar",
+        "execute": "abrir",
+        "executa": "abrir",
+        "executar": "abrir",
+        "rode": "abrir",
+        "rodar": "abrir",
+        "busque": "pesquise",
+        "busca": "pesquise",
+        "buscar": "pesquisar",
+        "procure": "pesquise",
+        "procura": "pesquise",
+        "procurar": "pesquisar",
+        "encontre": "pesquise",
+        "encontrar": "pesquisar",
+        "pesquisa": "pesquise",
+        "traduz": "traduza",
+        "traduzir": "traduza",
+    }
+    for errado, correto in sinonimos.items():
+        texto = re.sub(rf"\b{errado}\b", correto, texto)
+
+    for palavra in ["por favor", "por gentileza", "porfa", "pfv"]:
+        texto = re.sub(rf"\b{re.escape(palavra)}\b", "", texto)
 
     for palavra in ["hey jarvis", "ei jarvis", "jarvis"]:
         texto = texto.replace(palavra, "")
@@ -215,6 +256,22 @@ def executar_comando(texto):
 
         # Nenhuma resposta clara: pedir confirmação
         return "Preciso que você responda sim ou não."
+
+    pedido_spotify = extrair_pedido_spotify(texto)
+    if pedido_spotify is not None:
+        acao_spotify, consulta_spotify = pedido_spotify
+        if not consulta_spotify:
+            return "Diga o nome da musica ou artista para pesquisar no Spotify."
+        if acao_spotify == "play":
+            from .spotify_player import tocar_spotify
+            return tocar_spotify(consulta_spotify)
+        return pesquisar_spotify(consulta_spotify)
+
+    consulta_video = extrair_consulta_video_youtube(texto)
+    if consulta_video is not None:
+        if consulta_video:
+            return abrir_video_youtube(consulta_video)
+        return "Diga qual video voce quer abrir no YouTube."
 
     # ==========================================================
     # VOLUME - SPOTIFY
@@ -1108,18 +1165,32 @@ def executar_comando(texto):
 # TRADUTOR
 # ==========================================================
 
+    como_dizer = re.match(
+        r"como (?:se diz|se fala|falar) (.+?) (?:em|no|na) (.+)", texto
+    )
+    if como_dizer:
+        return traduzir(como_dizer.group(1).strip(), como_dizer.group(2).strip())
+
     if "traduz" in texto or "traduza" in texto or "traduzir" in texto:
 
         texto_traducao = texto
 
-        for palavra in ["traduza", "traduzir", "traduz"]:
+        for palavra in ["traduza", "traduzir", "traduz", "tradução", "traducao"]:
             texto_traducao = texto_traducao.replace(palavra, "", 1)
+
+        texto_traducao = texto_traducao.replace(" em ", " para ")
+        texto_traducao = texto_traducao.replace(" pro ", " para ")
+        texto_traducao = texto_traducao.replace(" pra ", " para ")
+        texto_traducao = texto_traducao.replace(" ao ", " para ")
 
         if " para " in texto_traducao:
             partes = texto_traducao.rsplit(" para ", 1)
 
             texto_original = partes[0].strip()
             idioma = partes[1].strip()
+
+            texto_original = re.sub(r"^(?:a frase|a palavra|a expressão|o texto)\s+", "", texto_original)
+            texto_original = re.sub(r"^(?:para|do|da|de)\s+", "", texto_original)
 
             if texto_original and idioma:
                 return traduzir(texto_original, idioma)

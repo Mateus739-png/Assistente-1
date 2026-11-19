@@ -1,18 +1,21 @@
 ﻿import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, simpledialog, messagebox
 
 import threading
+import math
 from concurrent.futures import ThreadPoolExecutor
 
-from datetime import datetime
 import os
 import logging
+import hashlib
+import hmac
 
 from automacoes import (
     executar_comando,
     tirar_print,
     obter_ultimo_print,
 )
+from automacoes.perfil_publico import executar_comando_publico
 
 from ia.qwen import (
     perguntar,
@@ -53,6 +56,7 @@ logging.basicConfig(
 
 LARGURA = 1000
 ALTURA = 700
+HASH_SENHA_PERFIL = "88f964f6d945d6cf01603f3353fb18e597e843df0adb6ee376c0c2dd22dee453"
 
 
 class JarvisInterface:
@@ -74,312 +78,372 @@ class JarvisInterface:
         self.tarefas_lock = threading.Lock()
         self.gravacao_aula_thread = None
         self.gravacao_aula_stop = None
+        self.perfil_atual = "P" + chr(250) + "blico"
 
         self.criar_estilo()
         self.criar_interface()
-        self.atualizar_status("🟢 ONLINE", "Pronto para receber comandos.")
+        self.atualizar_status("Pronto")
 
     # ======================================================
     # ESTILO
     # ======================================================
 
     def criar_estilo(self):
-        estilo = ttk.Style()
-
         try:
-            estilo.theme_use("clam")
+            ttk.Style().theme_use("clam")
         except Exception:
             pass
 
-        estilo.configure(
-            "Jarvis.TButton",
-            font=("Segoe UI", 11),
-            padding=10,
-        )
-
-        estilo.configure(
-            "Jarvis.TEntry",
-            font=("Segoe UI", 12),
-        )
-
-    # ======================================================
-    # INTERFACE
-    # ======================================================
-
     def criar_interface(self):
-        self.root.configure(bg="#0b0f14")
-        self.root.grid_rowconfigure(0, weight=0)
-        self.root.grid_rowconfigure(1, weight=1)
-        self.root.grid_rowconfigure(2, weight=0)
-        self.root.grid_columnconfigure(0, weight=1)
+        sidebar_bg = "#f1f0eb"
+        main_bg = "#fbfaf8"
+        texto = "#282724"
+        suave = "#85837c"
+        painel = "#ffffff"
 
-        # CABEÇALHO
-        cabecalho = tk.Frame(self.root, bg="#0b0f14")
-        cabecalho.grid(row=0, column=0, sticky="ew", padx=35, pady=(25, 10))
+        self.root.configure(bg=main_bg)
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=0, minsize=238)
+        self.root.grid_columnconfigure(1, weight=1)
 
-        titulo = tk.Label(
-            cabecalho,
-            text="JARVIS",
-            font=("Segoe UI", 26, "bold"),
-            fg="#f0f6fc",
-            bg="#0b0f14",
+        sidebar = tk.Frame(self.root, bg=sidebar_bg, width=238)
+        sidebar.grid(row=0, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.grid_rowconfigure(4, weight=1)
+        sidebar.grid_columnconfigure(0, weight=1)
+
+        marca = tk.Frame(sidebar, bg=sidebar_bg)
+        marca.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 17))
+        logo = tk.Canvas(marca, width=29, height=29, bg=sidebar_bg, highlightthickness=0)
+        logo.pack(side="left", padx=(0, 10))
+        self._pilula(logo, 1, 1, 28, 28, 8, "#191918")
+        logo.create_text(14, 14, text="N", fill="#ffffff", font=("Segoe UI", 11, "bold"))
+        tk.Label(marca, text="Nexo AI", font=("Segoe UI", 10, "bold"),
+                 fg=texto, bg=sidebar_bg).pack(side="left")
+
+        self.botao_nova_conversa = tk.Canvas(
+            sidebar,
+            width=218,
+            height=40,
+            bg=sidebar_bg,
+            highlightthickness=0,
+            cursor="hand2",
         )
-        titulo.pack(side="left")
+        self.botao_nova_conversa.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 24))
+        self._desenhar_botao_nova_conversa()
+        self.botao_nova_conversa.bind("<Button-1>", lambda evento: self.nova_conversa())
+        self.botao_nova_conversa.bind(
+            "<Enter>", lambda evento: self._desenhar_botao_nova_conversa(hover=True)
+        )
+        self.botao_nova_conversa.bind(
+            "<Leave>", lambda evento: self._desenhar_botao_nova_conversa()
+        )
 
+        tk.Label(sidebar, text="RECENTES", font=("Segoe UI", 7, "bold"),
+                 fg="#99968e", bg=sidebar_bg, anchor="w").grid(
+            row=2, column=0, sticky="ew", padx=20, pady=(0, 8)
+        )
+        self.recentes_vazio = tk.Label(
+            sidebar,
+            text="Suas conversas aparecerao aqui.",
+            font=("Segoe UI", 8),
+            fg=suave,
+            bg=sidebar_bg,
+            anchor="w",
+            wraplength=195,
+            justify="left",
+        )
+        self.recentes_vazio.grid(row=3, column=0, sticky="new", padx=20, pady=4)
+
+        tk.Frame(sidebar, bg="#dfddd6", height=1).grid(
+            row=5, column=0, sticky="ew", padx=10, pady=(0, 0)
+        )
+        usuario = tk.Frame(sidebar, bg=sidebar_bg)
+        usuario.grid(row=6, column=0, sticky="ew", padx=16, pady=14)
+        avatar = tk.Canvas(usuario, width=32, height=32, bg=sidebar_bg, highlightthickness=0)
+        avatar.pack(side="left", padx=(0, 10))
+        avatar.create_oval(1, 1, 31, 31, fill="#dedbd2", outline="")
+        avatar.create_text(16, 16, text="M", fill="#68665f", font=("Segoe UI", 8, "bold"))
+        dados_usuario = tk.Frame(usuario, bg=sidebar_bg)
+        dados_usuario.pack(side="left")
+        tk.Label(dados_usuario, text="Mateus", font=("Segoe UI", 8, "bold"),
+                 fg=texto, bg=sidebar_bg, anchor="w").pack(anchor="w")
+        tk.Label(dados_usuario, text="Jarvis local", font=("Segoe UI", 7),
+                 fg=suave, bg=sidebar_bg, anchor="w").pack(anchor="w", pady=(2, 0))
+
+        principal = tk.Frame(self.root, bg=main_bg)
+        principal.grid(row=0, column=1, sticky="nsew")
+        principal.grid_rowconfigure(1, weight=1)
+        principal.grid_columnconfigure(0, weight=1)
+
+        cabecalho = tk.Frame(principal, bg=main_bg, height=52)
+        cabecalho.grid(row=0, column=0, sticky="ew")
+        cabecalho.grid_propagate(False)
         self.status_label = tk.Label(
+            cabecalho, text="Pronto", font=("Segoe UI", 8), fg=suave, bg=main_bg
+        )
+        self.status_label.pack(side="right", padx=(8, 17))
+        self.botao_perfil = tk.Canvas(
             cabecalho,
-            text="● ONLINE",
-            font=("Segoe UI", 11, "bold"),
-            fg="#7ee787",
-            bg="#0b0f14",
+            width=132,
+            height=34,
+            bg=main_bg,
+            highlightthickness=0,
+            cursor="hand2",
         )
-        self.status_label.pack(side="right", pady=8)
-
-        # ÁREA CENTRAL
-        centro = tk.Frame(self.root, bg="#0b0f14")
-        centro.grid(row=1, column=0, sticky="nsew", padx=35, pady=10)
-        centro.grid_rowconfigure(0, weight=1)
-        centro.grid_rowconfigure(1, weight=0)
-        centro.grid_rowconfigure(2, weight=0)
-        centro.grid_columnconfigure(0, weight=1)
-
-        # INDICADOR CENTRAL
-        indicador_frame = tk.Frame(centro, bg="#0b0f14")
-        indicador_frame.grid(row=0, column=0, sticky="n", pady=(30, 15))
-
-        self.indicador = tk.Label(
-            indicador_frame,
-            text="◉",
-            font=("Segoe UI", 42),
-            fg="#7ee787",
-            bg="#0b0f14",
+        self._pilula(self.botao_perfil, 1, 1, 131, 33, 16, painel, "#e6e3dc", 1)
+        self.texto_perfil_id = self.botao_perfil.create_text(
+            66, 17, text=self._texto_perfil(), fill="#59574f", font=("Segoe UI", 8)
         )
-        self.indicador.pack()
+        self.botao_perfil.bind("<Button-1>", self.alterar_perfil)
+        self.botao_perfil.pack(side="right", padx=(0, 16), pady=8)
 
-        self.estado_central = tk.Label(
-            indicador_frame,
-            text="ONLINE",
-            font=("Segoe UI", 13, "bold"),
-            fg="#8b949e",
-            bg="#0b0f14",
-        )
-        self.estado_central.pack()
+        conversa = tk.Frame(principal, bg=main_bg)
+        conversa.grid(row=1, column=0, sticky="nsew")
+        conversa.grid_rowconfigure(0, weight=1)
+        conversa.grid_columnconfigure(0, weight=1)
 
-        self.descricao_central = tk.Label(
-            indicador_frame,
-            text="Pronto para receber comandos",
-            font=("Segoe UI", 10),
-            fg="#6e7681",
-            bg="#0b0f14",
-        )
-        self.descricao_central.pack(pady=(5, 0))
-
-        # CHAT
         self.chat = tk.Text(
-            centro,
-            bg="#11161d",
-            fg="#d8dee9",
-            insertbackground="white",
-            font=("Segoe UI", 11),
+            conversa,
+            bg=main_bg,
+            fg=texto,
+            insertbackground=texto,
+            font=("Segoe UI", 10),
             wrap="word",
             relief="flat",
             borderwidth=0,
-            padx=25,
-            pady=20,
+            padx=100,
+            pady=25,
+            spacing1=5,
+            spacing3=8,
             state="disabled",
+            cursor="arrow",
+            selectbackground="#dedbd2",
         )
-        self.chat.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
+        self.chat.grid(row=0, column=0, sticky="nsew")
+        self.chat.tag_configure("autor_usuario", font=("Segoe UI", 9, "bold"),
+                                foreground="#5d5a53", spacing1=16, spacing3=4)
+        self.chat.tag_configure("autor_jarvis", font=("Segoe UI", 9, "bold"),
+                                foreground="#292825", spacing1=16, spacing3=4)
+        self.chat.tag_configure("mensagem", font=("Segoe UI", 10), foreground=texto,
+                                lmargin1=0, lmargin2=0, spacing3=10)
+        self.chat_scroll = ttk.Scrollbar(conversa, orient="vertical", command=self.chat.yview)
+        self.chat.configure(yscrollcommand=self.chat_scroll.set)
+        self.chat_scroll.grid(row=0, column=1, sticky="ns")
+        self.chat_visible = True
 
-        # STATUS DOS SISTEMAS
-        status_frame = tk.Frame(centro, bg="#0b0f14")
-        status_frame.grid(row=2, column=0, sticky="ew", pady=(12, 12))
-
-        status_texto = tk.Label(
-            status_frame,
-            text="Qwen  •  Whisper  •  Piper  •  Automação",
-            font=("Segoe UI", 9),
-            fg="#6e7681",
-            bg="#0b0f14",
+        self.boas_vindas = tk.Frame(conversa, bg=main_bg)
+        self.boas_vindas.place(relx=0.5, rely=0.47, anchor="center")
+        icone = tk.Canvas(self.boas_vindas, width=36, height=36, bg=main_bg, highlightthickness=0)
+        icone.pack(anchor="w", pady=(0, 15))
+        self._pilula(icone, 1, 1, 35, 35, 9, "#191918")
+        icone.create_text(18, 18, text="N", fill="#ffffff", font=("Segoe UI", 13, "bold"))
+        tk.Label(self.boas_vindas, text="Ol" + chr(225) + ", Mateus",
+                 font=("Segoe UI", 9), fg=suave, bg=main_bg, anchor="w").pack(anchor="w")
+        tk.Label(self.boas_vindas, text="Como posso ajudar hoje?",
+                 font=("Segoe UI", 25), fg=texto, bg=main_bg, anchor="w").pack(
+            anchor="w", pady=(5, 8)
         )
-        status_texto.pack()
+        tk.Label(
+            self.boas_vindas,
+            text="Converse, crie e descubra novas ideias. Escreva, fale ou mostre o que\nest" + chr(225) + " pensando.",
+            font=("Segoe UI", 9), fg=suave, bg=main_bg, justify="left", anchor="w",
+        ).pack(anchor="w")
 
-        # ÁREA DE DIGITAÇÃO
-        entrada_frame = tk.Frame(centro, bg="#0b0f14")
-        entrada_frame.grid(row=3, column=0, sticky="ew", pady=(0, 5))
-        entrada_frame.grid_columnconfigure(0, weight=1)
-
+        rodape = tk.Frame(principal, bg=main_bg)
+        rodape.grid(row=2, column=0, sticky="ew", padx=125, pady=(8, 5))
+        rodape.grid_columnconfigure(0, weight=1)
+        self.entrada_frame = tk.Canvas(rodape, height=54, bg=main_bg, highlightthickness=0)
+        self.entrada_frame.grid(row=0, column=0, sticky="ew")
         self.entrada = tk.Entry(
-            entrada_frame,
-            bg="#161b22",
-            fg="#f0f6fc",
-            insertbackground="white",
-            font=("Segoe UI", 12),
-            relief="flat",
-            borderwidth=0,
+            self.entrada_frame, bg=painel, fg=texto, insertbackground=texto,
+            font=("Segoe UI", 9), relief="flat", borderwidth=0,
         )
-        self.entrada.grid(row=0, column=0, sticky="ew", ipady=14, padx=(0, 8))
-        self.entrada.insert(0, "Digite um comando...")
+        self.entrada.insert(0, "Escreva sua mensagem...")
+        self.entrada.configure(fg="#aaa79f")
         self.entrada.bind("<FocusIn>", lambda evento: self.limpar_placeholder())
         self.entrada.bind("<Return>", lambda evento: self.enviar_texto())
-
-        botao_enviar = tk.Button(
-            entrada_frame,
-            text="➤",
-            command=self.enviar_texto,
-            bg="#238636",
-            fg="white",
-            activebackground="#2ea043",
-            activeforeground="white",
-            relief="flat",
-            font=("Segoe UI", 14, "bold"),
-            padx=15,
-            pady=8,
-            cursor="hand2",
+        self.entrada_window = self.entrada_frame.create_window(
+            55, 27, window=self.entrada, anchor="w", width=250, height=30
         )
-        botao_enviar.grid(row=0, column=1, padx=4)
 
-        botao_voz = tk.Button(
-            entrada_frame,
-            text="🎤",
-            command=self.iniciar_voz,
-            bg="#1f6feb",
-            fg="white",
-            activebackground="#388bfd",
-            activeforeground="white",
-            relief="flat",
-            font=("Segoe UI", 13),
-            padx=14,
-            pady=8,
-            cursor="hand2",
+        self.botao_print = tk.Canvas(self.entrada_frame, width=34, height=34,
+                                     bg=painel, highlightthickness=0, cursor="hand2")
+        self.botao_print.create_text(17, 17, text=chr(128247), font=("Segoe UI Emoji", 13), fill="#55534d")
+        self.botao_print.bind("<Button-1>", lambda evento: self.iniciar_analise_print())
+        self.botao_print_window = self.entrada_frame.create_window(
+            27, 27, window=self.botao_print, anchor="center"
         )
-        botao_voz.grid(row=0, column=2, padx=4)
 
-        botao_aula = tk.Button(
-            entrada_frame,
-            text="📚",
-            command=self.iniciar_aula_teams,
-            bg="#f08800",
-            fg="white",
-            activebackground="#ff9f1c",
-            activeforeground="white",
-            relief="flat",
-            font=("Segoe UI", 13),
-            padx=14,
-            pady=8,
-            cursor="hand2",
+        self.botao_voz = tk.Canvas(self.entrada_frame, width=34, height=34,
+                                   bg=painel, highlightthickness=0, cursor="hand2")
+        self.botao_voz.create_text(17, 17, text=chr(127908), font=("Segoe UI Emoji", 13), fill="#55534d")
+        self.botao_voz.bind("<Button-1>", lambda evento: self.iniciar_voz())
+        self.botao_voz_window = self.entrada_frame.create_window(
+            0, 27, window=self.botao_voz, anchor="center"
         )
-        botao_aula.grid(row=0, column=3, padx=4)
 
-        botao_print = tk.Button(
-            entrada_frame,
-            text="📸",
-            command=self.iniciar_analise_print,
-            bg="#8957e5",
-            fg="white",
-            activebackground="#a371f7",
-            activeforeground="white",
-            relief="flat",
-            font=("Segoe UI", 13),
-            padx=14,
-            pady=8,
-            cursor="hand2",
+        self.botao_enviar = tk.Canvas(self.entrada_frame, width=34, height=34,
+                                      bg=painel, highlightthickness=0, cursor="hand2")
+        self.botao_enviar.create_oval(1, 1, 33, 33, fill="#d8d5ce", outline="")
+        self.botao_enviar.create_text(17, 16, text=chr(8593), fill="#ffffff",
+                                      font=("Segoe UI", 15, "bold"))
+        self.botao_enviar.bind("<Button-1>", lambda evento: self.enviar_texto())
+        self.botao_enviar_window = self.entrada_frame.create_window(
+            0, 27, window=self.botao_enviar, anchor="center"
         )
-        botao_print.grid(row=0, column=4, padx=4)
+        self.entrada_frame.bind("<Configure>", self._desenhar_compositor)
+        self._desenhar_compositor()
 
-        rodape = tk.Label(
-            self.root,
-            text="Jarvis Local",
-            font=("Segoe UI", 8),
-            fg="#484f58",
-            bg="#0b0f14",
+        ferramentas = tk.Frame(rodape, bg=main_bg)
+        ferramentas.grid(row=1, column=0, sticky="w", pady=(3, 0))
+        self.botao_aula = tk.Button(
+            ferramentas, text="Gravar aula", command=self.iniciar_aula_teams,
+            bg=main_bg, fg="#77746d", activebackground="#efeee9",
+            activeforeground=texto, relief="flat", font=("Segoe UI", 7),
+            padx=5, pady=2, cursor="hand2",
         )
-        rodape.grid(row=2, column=0, pady=(0, 10))
-
-        # STATUS INDICADORES
-        status_indicadores = tk.Frame(centro, bg="#0d1117")
-        status_indicadores.grid(row=2, column=0, sticky="ew", pady=(12, 8))
-
-        self.criar_status(status_indicadores, "🧠 Qwen", "ONLINE").pack(side="left", padx=5)
-        self.criar_status(status_indicadores, "🎤 Whisper", "ONLINE").pack(side="left", padx=5)
-        self.criar_status(status_indicadores, "🔊 Piper", "ONLINE").pack(side="left", padx=5)
-        self.criar_status(status_indicadores, "⚙️ Automação", "ONLINE").pack(side="left", padx=5)
-
-    # ======================================================
-    # STATUS
-    # ======================================================
-
-    def criar_status(self, parent, nome, estado):
-        frame = tk.Frame(parent, bg="#161b22", padx=10, pady=7)
+        self.botao_aula.pack(side="left")
+        self.botao_aula.configure(state="disabled")
+        self.botao_print.configure(state="disabled")
 
         tk.Label(
-            frame,
-            text=nome,
-            font=("Segoe UI", 9, "bold"),
-            fg="#c9d1d9",
-            bg="#161b22",
-        ).pack(side="left")
+            principal,
+            text="A Nexo pode cometer erros. Verifique informacoes importantes.",
+            font=("Segoe UI", 7), fg="#aaa79f", bg=main_bg,
+        ).grid(row=3, column=0, pady=(0, 7))
 
-        tk.Label(
-            frame,
-            text=f"  ● {estado}",
-            font=("Segoe UI", 9),
-            fg="#7ee787",
-            bg="#161b22",
-        ).pack(side="left")
+    @staticmethod
+    def _pilula(canvas, x1, y1, x2, y2, raio, preenchimento, contorno=None, largura=1):
+        pontos = []
+        cantos = (
+            (x2 - raio, y1 + raio, -90, 0),
+            (x2 - raio, y2 - raio, 0, 90),
+            (x1 + raio, y2 - raio, 90, 180),
+            (x1 + raio, y1 + raio, 180, 270),
+        )
+        for cx, cy, inicio, fim in cantos:
+            for passo in range(9):
+                angulo = math.radians(inicio + (fim - inicio) * passo / 8)
+                pontos.extend((cx + raio * math.cos(angulo),
+                               cy + raio * math.sin(angulo)))
+        return canvas.create_polygon(
+            *pontos,
+            smooth=False,
+            fill=preenchimento,
+            outline=contorno or preenchimento,
+            width=largura,
+            tags=("forma",),
+        )
 
-        return frame
+    def _texto_perfil(self):
+        nome = "P" + chr(250) + "blico" if self.perfil_atual == ("P" + chr(250) + "blico") else "Privado"
+        icone = chr(127760) if self.perfil_atual == ("P" + chr(250) + "blico") else chr(128274)
+        return f"{icone}  {nome}  v"
+
+    def _desenhar_botao_nova_conversa(self, hover=False):
+        canvas = self.botao_nova_conversa
+        canvas.delete("all")
+        preenchimento = "#e9e7e1" if hover else "#faf9f6"
+        self._pilula(canvas, 1, 1, 217, 39, 10, preenchimento, "#e4e1d9", 1)
+        canvas.create_text(17, 20, text=chr(9998), anchor="w", fill="#646159",
+                           font=("Segoe UI Symbol", 11))
+        canvas.create_text(38, 20, text="Nova conversa", anchor="w", fill="#34332f",
+                           font=("Segoe UI", 9))
+
+    def _desenhar_compositor(self, evento=None):
+        if not hasattr(self, "entrada_frame") or not hasattr(self, "botao_enviar_window"):
+            return
+        canvas = self.entrada_frame
+        largura = max(canvas.winfo_width(), 250)
+        altura = max(canvas.winfo_height(), 54)
+        canvas.delete("forma")
+        self._pilula(canvas, 1, 1, largura - 1, altura - 1, altura / 2,
+                     "#ffffff", "#e3e0d9", 1)
+        canvas.tag_lower("forma")
+        canvas.coords(self.entrada_window, 55, altura / 2)
+        canvas.itemconfigure(self.entrada_window, width=max(80, largura - 155))
+        canvas.coords(self.botao_print_window, 27, altura / 2)
+        canvas.coords(self.botao_voz_window, largura - 77, altura / 2)
+        canvas.coords(self.botao_enviar_window, largura - 31, altura / 2)
 
     def limpar_placeholder(self):
-        if self.entrada.get() == "Digite um comando...":
+        if self.entrada.get() == "Escreva sua mensagem...":
             self.entrada.delete(0, "end")
-            self.entrada.configure(fg="#f0f6fc")
+        self.entrada.configure(fg="#282724")
 
-    def atualizar_status(self, estado, descricao=""):
-        self.root.after(0, lambda: self.status_label.config(text=estado))
-        if descricao:
-            self.root.after(0, lambda: self.adicionar_mensagem("JARVIS", descricao))
-
-    def atualizar_estado(self, estado):
-        if not hasattr(self, "status_label"):
+    def alterar_perfil(self, evento=None):
+        perfil_publico_atual = self.perfil_atual == ("P" + chr(250) + "blico")
+        senha = simpledialog.askstring(
+            "Trocar perfil",
+            "Digite a senha para trocar de perfil:",
+            show="*",
+            parent=self.root,
+        )
+        senha_valida = senha is not None and hmac.compare_digest(
+            hashlib.sha256(senha.encode("utf-8")).hexdigest(),
+            HASH_SENHA_PERFIL,
+        )
+        if not senha_valida:
+            if senha is not None:
+                messagebox.showerror(
+                    "Senha incorreta",
+                    "A senha informada nao esta correta.",
+                    parent=self.root,
+                )
             return
 
-        def atualizar():
-            self.status_label.config(text=estado)
+        publico = not perfil_publico_atual
+        self.perfil_atual = ("P" + chr(250) + "blico") if publico else "Privado"
+        estado = "disabled" if publico else "normal"
+        self.botao_aula.configure(state=estado)
+        self.botao_print.configure(state=estado)
+        self.botao_perfil.itemconfigure(self.texto_perfil_id, text=self._texto_perfil())
+        self.atualizar_status(("Perfil p" + chr(250) + "blico") if publico else "Perfil privado")
 
-            if "OUVINDO" in estado:
-                icone = "🎤"
-                texto = "OUVINDO"
-                descricao = "Estou ouvindo você..."
-                cor = "#58a6ff"
-            elif "PENSANDO" in estado or "EXECUTANDO" in estado:
-                icone = "◌"
-                texto = "PENSANDO"
-                descricao = "Processando sua solicitação..."
-                cor = "#d29922"
-            elif "FALANDO" in estado:
-                icone = "🔊"
-                texto = "FALANDO"
-                descricao = "Estou respondendo..."
-                cor = "#a371f7"
-            elif "ERRO" in estado:
-                icone = "!"
-                texto = "ERRO"
-                descricao = "Algo deu errado."
-                cor = "#f85149"
-            else:
-                icone = "◉"
-                texto = "ONLINE"
-                descricao = "Pronto para receber comandos."
-                cor = "#7ee787"
+    def atualizar_status(self, estado, descricao=""):
+        if not hasattr(self, "status_label"):
+            return
+        texto = estado.upper()
+        if "ERRO" in texto:
+            cor = "#f28b82"
+        elif "OUVINDO" in texto or "TRANSCR" in texto:
+            cor = "#a8c7fa"
+        elif "PENSANDO" in texto or "EXECUTANDO" in texto or "PROCESSANDO" in texto:
+            cor = "#e3c27a"
+        else:
+            cor = "#a0a0a0"
+        self.root.after(0, lambda: self.status_label.configure(text=estado, fg=cor))
 
-            if hasattr(self, "indicador"):
-                self.indicador.config(text=icone, fg=cor)
-            if hasattr(self, "estado_central"):
-                self.estado_central.config(text=texto, fg=cor)
-            if hasattr(self, "descricao_central"):
-                self.descricao_central.config(text=descricao)
+    def atualizar_estado(self, estado):
+        texto = estado.upper()
+        if "ERRO" in texto:
+            status = "Erro"
+        elif "OUVINDO" in texto:
+            status = "Ouvindo..."
+        elif "TRANSCR" in texto:
+            status = "Transcrevendo..."
+        elif "PENSANDO" in texto:
+            status = "Pensando..."
+        elif "EXECUTANDO" in texto:
+            status = "Executando..."
+        elif "FALANDO" in texto:
+            status = "Falando..."
+        elif "PROCESSANDO" in texto:
+            status = "Processando"
+        else:
+            status = "Pronto"
+        self.atualizar_status(status)
 
-        self.root.after(0, atualizar)
+    def nova_conversa(self):
+        self.chat.configure(state="normal")
+        self.chat.delete("1.0", "end")
+        self.chat.configure(state="disabled")
+        self.chat_visible = True
+        self.boas_vindas.place(relx=0.5, rely=0.47, anchor="center")
+        self.entrada.delete(0, "end")
+        self.entrada.focus_set()
+        self.atualizar_status("Nova conversa")
 
     def iniciar_tarefa(self):
         with self.tarefas_lock:
@@ -404,19 +468,22 @@ class JarvisInterface:
 
     def adicionar_mensagem(self, autor, mensagem):
         logging.info("TEXTO | %s", mensagem)
+        if self.chat_visible:
+            self.boas_vindas.place_forget()
+            self.chat_visible = False
 
-        horario = datetime.now().strftime("%H:%M")
-        self.chat.config(state="normal")
-
-        if autor == "VOCÊ":
-            prefixo = f"\n[{horario}] VOCÊ:\n"
+        self.chat.configure(state="normal")
+        if autor == ("VOC" + chr(202)):
+            nome = "Voc" + chr(234)
+            tag_autor = "autor_usuario"
         else:
-            prefixo = f"\n[{horario}] JARVIS:\n"
+            nome = "Jarvis"
+            tag_autor = "autor_jarvis"
 
-        self.chat.insert("end", prefixo)
-        self.chat.insert("end", mensagem + "\n")
+        self.chat.insert("end", nome + "\n", tag_autor)
+        self.chat.insert("end", str(mensagem) + "\n", "mensagem")
         self.chat.see("end")
-        self.chat.config(state="disabled")
+        self.chat.configure(state="disabled")
 
     # ======================================================
     # TEXTO
@@ -425,20 +492,35 @@ class JarvisInterface:
     def enviar_texto(self):
         texto = self.entrada.get().strip()
 
-        if not texto:
+        if not texto or texto == "Escreva sua mensagem...":
             return
 
         self.entrada.delete(0, "end")
         self.adicionar_mensagem("VOCÊ", texto)
         self.iniciar_tarefa()
-        self.executor.submit(self.processar_texto, texto)
+        perfil = self.perfil_atual
+        self.executor.submit(self.processar_texto, texto, perfil)
 
     # ======================================================
     # PROCESSAR TEXTO
     # ======================================================
 
-    def processar_texto(self, texto):
+    def processar_texto(self, texto, perfil=None):
         try:
+            perfil = perfil or self.perfil_atual
+            if perfil == "Público":
+                resultado = executar_comando_publico(texto)
+                resposta = resultado if resultado else perguntar(texto)
+
+                self.root.after(
+                    0,
+                    lambda r=resposta: self.adicionar_mensagem("JARVIS", r),
+                )
+                self.atualizar_estado("🔊 FALANDO")
+                with self.tts_lock:
+                    falar(resposta)
+                return
+
             comando_aula = classificar_comando_aula(texto)
 
             if comando_aula == "iniciar":
@@ -516,6 +598,7 @@ class JarvisInterface:
         self.executor.submit(self.processar_voz)
 
     def processar_voz(self):
+        perfil = self.perfil_atual
         try:
             self.atualizar_estado("🔴 OUVINDO")
             audio = gravar_audio()
@@ -533,7 +616,7 @@ class JarvisInterface:
                 lambda t=texto: self.adicionar_mensagem("VOCÊ", t),
             )
 
-            self.processar_texto(texto)
+            self.processar_texto(texto, perfil)
 
         except Exception as erro:
             mensagem = f"Erro no microfone:\n{erro}"
@@ -546,6 +629,9 @@ class JarvisInterface:
     # ======================================================
 
     def iniciar_aula_teams(self):
+        if self.perfil_atual == "Público":
+            self.adicionar_mensagem("JARVIS", "Gravação de aula está bloqueada no perfil público.")
+            return
         self.iniciar_tarefa()
         self.executor.submit(self.processar_aula_teams)
 
@@ -563,7 +649,6 @@ class JarvisInterface:
                     0,
                     lambda: self.adicionar_mensagem("JARVIS", "Não consegui extrair áudio da aula."),
                 )
-                self.finalizar_tarefa()
                 return
 
             self.root.after(
@@ -606,14 +691,17 @@ class JarvisInterface:
     # ======================================================
 
     def iniciar_analise_print(self):
+        if self.perfil_atual == "Público":
+            self.adicionar_mensagem("JARVIS", "Análise de tela está bloqueada no perfil público.")
+            return
         self.iniciar_tarefa()
         self.executor.submit(self.processar_analise_print)
 
     def processar_analise_print(self):
         try:
-            self.root.after(0, lambda: self.status_label.config(text="📸 TIRANDO PRINT"))
+            self.atualizar_estado("TIRANDO PRINT")
             tirar_print()
-            self.root.after(0, lambda: self.status_label.config(text="🧠 ANALISANDO"))
+            self.atualizar_estado("ANALISANDO")
 
             ultimo_print = obter_ultimo_print()
 
@@ -636,7 +724,7 @@ class JarvisInterface:
                 0,
                 lambda r=resposta: self.adicionar_mensagem("JARVIS", r),
             )
-            self.root.after(0, lambda: self.status_label.config(text="🔵 FALANDO"))
+            self.atualizar_estado("FALANDO")
 
             with self.tts_lock:
                 falar(resposta)
@@ -653,7 +741,6 @@ class JarvisInterface:
     # ======================================================
 
     def iniciar(self):
-        self.adicionar_mensagem("JARVIS", "Interface iniciada. Estou pronto.")
         self.root.mainloop()
 
 

@@ -1,65 +1,58 @@
 import os
 import subprocess
+import ctypes
+import time
+
+VK_MEDIA_NEXT_TRACK = 0xB0
+VK_MEDIA_PREV_TRACK = 0xB1
+VK_MEDIA_PLAY_PAUSE = 0xB3
 
 
-def abrir_programa(nome, mensagem):
+def abrir_programa(nome, mensagem, argumentos=()):
+    argumentos = list(argumentos)
     try:
-        # Primeiro tenta abrir normalmente
-        subprocess.Popen([nome])
+        subprocess.Popen([nome, *argumentos])
         return mensagem
-
     except FileNotFoundError:
-        # Caminhos comuns dos programas
         caminhos = {
             "steam": [
                 r"C:\Program Files (x86)\Steam\steam.exe",
-                r"C:\Program Files\Steam\steam.exe"
+                r"C:\Program Files\Steam\steam.exe",
             ],
-
             "code": [
                 r"C:\Program Files\Microsoft VS Code\Code.exe",
-                os.path.expandvars(
-                    r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
-                )
+                os.path.expandvars(r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"),
             ],
-
             "edge": [
                 r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
             ],
-
             "chrome": [
                 r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-            ]
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            ],
         }
-
-        if nome in caminhos:
-            for caminho in caminhos[nome]:
-                if os.path.exists(caminho):
-                    subprocess.Popen([caminho])
+        for caminho in caminhos.get(nome, []):
+            if os.path.isfile(caminho):
+                try:
+                    subprocess.Popen([caminho, *argumentos])
                     return mensagem
-
-        print(f"⚠️ Programa não encontrado: {nome}")
-        return f"Não consegui abrir {nome}."
-
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir {nome}: {erro}")
-        return f"Não consegui abrir {nome}."
-
+                except OSError as erro:
+                    print(f"Erro ao iniciar {nome} em {caminho}: {erro}")
+                    break
+        print(f"Programa n\u00e3o encontrado: {nome}")
+        return f"N\u00e3o consegui abrir {nome}."
+    except OSError as erro:
+        print(f"Erro ao abrir {nome}: {erro}")
+        return f"N\u00e3o consegui abrir {nome}."
 
 def abrir_link(link, mensagem):
     try:
         os.startfile(link)
         return mensagem
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir {link}: {erro}")
-        return mensagem
-
-
-# ==========================================================
-# PROGRAMAS
-# ==========================================================
+    except (OSError, AttributeError) as erro:
+        print(f"Erro ao abrir {link}: {erro}")
+        return f"Não consegui abrir {link}."
 
 def abrir_edge():
     return abrir_programa(
@@ -83,37 +76,10 @@ def abrir_calculadora():
 
 
 def abrir_steam():
-    try:
-        caminho = r"C:\Program Files (x86)\Steam\steam.exe"
-        subprocess.Popen([caminho])
-        return "Abrindo a Steam."
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir Steam: {erro}")
-        return "Não consegui abrir a Steam."
-
+    return abrir_programa("steam", "Abrindo a Steam.")
 
 def abrir_vscode():
-    try:
-        caminhos = [
-            r"C:\Program Files\Microsoft VS Code\Code.exe",
-            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe")
-        ]
-
-        for caminho in caminhos:
-            if os.path.exists(caminho):
-                subprocess.Popen([caminho])
-                return "Abrindo o VS Code."
-
-        return "Não encontrei o VS Code instalado."
-
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir VS Code: {erro}")
-        return "Não consegui abrir o VS Code."
-
-
-# ==========================================================
-# SITES / APLICATIVOS
-# ==========================================================
+    return abrir_programa("code", "Abrindo o VS Code.")
 
 def abrir_whatsapp():
     return abrir_link(
@@ -122,18 +88,18 @@ def abrir_whatsapp():
     )
 
 def abrir_spotify():
+    executavel = r"C:\Users\User\AppData\Roaming\Spotify\Spotify.exe"
     try:
-        os.startfile("spotify:")
+        subprocess.Popen([executavel])
         return "Abrindo o Spotify."
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir Spotify: {erro}")
-        return "Não consegui abrir o Spotify."
-
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir Spotify: {erro}")
-        return "Não consegui abrir o Spotify."
-
-
+    except OSError as erro:
+        print(f"Erro ao abrir Spotify em {executavel}: {erro}")
+        try:
+            os.startfile("spotify:")
+            return "Abrindo o Spotify."
+        except (OSError, AttributeError) as erro_uri:
+            print(f"Erro ao abrir o Spotify pelo protocolo: {erro_uri}")
+            return "N\u00e3o consegui abrir o Spotify."
 
 def abrir_discord():
     return abrir_link(
@@ -214,44 +180,28 @@ def abrir_tlauncher():
 
 def abrir_projeto_sexta_feira():
     pasta = r"C:\SextaFeira"
-
     arquivos = [
-        r"C:\SextaFeira\main.py",
-        r"C:\SextaFeira\teste_wake.py",
-        r"C:\SextaFeira\vts.py",
-        r"C:\SextaFeira\ia\tts.py",
+        os.path.join(pasta, "main.py"),
+        os.path.join(pasta, "teste_wake.py"),
+        os.path.join(pasta, "vts.py"),
+        os.path.join(pasta, "ia", "tts.py"),
     ]
+    if not os.path.isdir(pasta):
+        return f"N\u00e3o encontrei a pasta do projeto: {pasta}."
 
-    try:
-        subprocess.Popen([
-            "code",
-            pasta,
-            *arquivos
-        ])
+    arquivos_existentes = [arquivo for arquivo in arquivos if os.path.isfile(arquivo)]
+    resultado = abrir_programa(
+        "code",
+        "Projeto Sexta-feira iniciado. VS Code est\u00e1 abrindo.",
+        [pasta, *arquivos_existentes],
+    )
+    if resultado.startswith("N\u00e3o consegui"):
+        return resultado
 
-        os.startfile("https://chatgpt.com")
-
-        return (
-            "Projeto Sexta-feira iniciado. "
-            "VS Code e ChatGPT estão abrindo."
-        )
-
-    except Exception as erro:
-        print(f"⚠️ Erro ao abrir Projeto Sexta-feira: {erro}")
-        return "Tive um problema ao abrir o Projeto Sexta-feira."
-    return "Projeto Sexta-feira iniciado. VS Code e ChatGPT estão abrindo."
-
-import ctypes
-
-
-# ==========================================================
-# CONTROLE DE MÍDIA
-# ==========================================================
-
-VK_MEDIA_NEXT_TRACK = 0xB0
-VK_MEDIA_PREV_TRACK = 0xB1
-VK_MEDIA_PLAY_PAUSE = 0xB3
-
+    resultado_link = abrir_link("https://chatgpt.com", "ChatGPT est\u00e1 abrindo.")
+    if resultado_link.startswith("N\u00e3o consegui"):
+        return resultado_link
+    return "Projeto Sexta-feira iniciado. VS Code e ChatGPT est\u00e3o abrindo."
 
 def _pressionar_tecla_midia(tecla):
     ctypes.windll.user32.keybd_event(
@@ -293,9 +243,6 @@ def proxima_musica():
     return "Pulando para a próxima música."
 
 
-import time
-
-
 def musica_anterior():
     _pressionar_tecla_midia(
         VK_MEDIA_PREV_TRACK
@@ -313,184 +260,34 @@ def musica_anterior():
 # ABRIR ARQUIVO / PASTA GENERICAMENTE
 # ==========================================================
 
-import os
+from .caminhos import (
+    PASTA_ASSISTENTE,
+    PASTA_DOWNLOADS,
+    encontrar_caminho,
+    abrir_caminho_generico,
+)
 
 
-PASTAS_BUSCA = [
-    r"C:\Users\User\Downloads\Assistente",
-    r"C:\Users\User\Downloads",
-]
-
-
-def encontrar_caminho(nome):
-
-    nome = nome.lower().strip()
-
-    encontrados = []
-
-    for pasta in PASTAS_BUSCA:
-
-        if not os.path.exists(pasta):
-            continue
-
-        for raiz, diretorios, arquivos in os.walk(pasta):
-
-            for arquivo in arquivos:
-
-                if arquivo.lower() == nome:
-                    encontrados.append(
-                        os.path.join(raiz, arquivo)
-                    )
-
-            for diretorio in diretorios:
-
-                if diretorio.lower() == nome:
-                    encontrados.append(
-                        os.path.join(raiz, diretorio)
-                    )
-
-    # Remove duplicados
-    encontrados = list(
-        dict.fromkeys(encontrados)
-    )
-
-    return encontrados
-
-
-def abrir_caminho_generico(nome):
-
-    encontrados = encontrar_caminho(nome)
-
-    if not encontrados:
-        return f"Não encontrei {nome}."
-
-    if len(encontrados) > 1:
-
-        return (
-            f"Encontrei {len(encontrados)} itens chamados "
-            f"{nome}. Seja mais específico."
-        )
-
-    caminho = encontrados[0]
-
+def _abrir_local(caminho, descricao):
     try:
-        os.startfile(caminho)
-
-        return f"Abrindo {nome}."
-
-    except Exception as erro:
-
-        print(
-            f"❌ Erro ao abrir {caminho}: {erro}"
-        )
-
-        return "Não consegui abrir esse arquivo."
-    
-    # ==========================================================
-# ABRIR PASTAS E ARQUIVOS
-# ==========================================================
-
-import os
-
-
-PASTA_ASSISTENTE = r"C:\Users\User\Downloads\Assistente"
-PASTA_DOWNLOADS = r"C:\Users\User\Downloads"
+        os.startfile(str(caminho))
+        return f"Abrindo {descricao}."
+    except (OSError, AttributeError) as erro:
+        print(f"Erro ao abrir {caminho}: {erro}")
+        return f"Não consegui abrir {descricao}."
 
 
 def abrir_downloads():
-    os.startfile(PASTA_DOWNLOADS)
-    return "Abrindo a pasta Downloads."
+    return _abrir_local(PASTA_DOWNLOADS, "a pasta Downloads")
 
 
 def abrir_assistente():
-    os.startfile(PASTA_ASSISTENTE)
-    return "Abrindo a pasta do Assistente."
+    return _abrir_local(PASTA_ASSISTENTE, "a pasta do Assistente")
 
 
 def abrir_main():
-    caminho = os.path.join(
-        PASTA_ASSISTENTE,
-        "main.py"
-    )
-
-    os.startfile(caminho)
-    return "Abrindo o main.py."
+    return _abrir_local(PASTA_ASSISTENTE / "main.py", "o main.py")
 
 
 def abrir_interface():
-    caminho = os.path.join(
-        PASTA_ASSISTENTE,
-        "interface.py"
-    )
-
-    os.startfile(caminho)
-    return "Abrindo a interface."
-
-
-def encontrar_caminho(nome):
-
-    nome = nome.lower().strip()
-
-    encontrados = []
-
-    pastas_busca = [
-        PASTA_ASSISTENTE,
-        PASTA_DOWNLOADS
-    ]
-
-    for pasta in pastas_busca:
-
-        if not os.path.exists(pasta):
-            continue
-
-        for raiz, diretorios, arquivos in os.walk(pasta):
-
-            for arquivo in arquivos:
-
-                if arquivo.lower() == nome:
-                    encontrados.append(
-                        os.path.join(raiz, arquivo)
-                    )
-
-            for diretorio in diretorios:
-
-                if diretorio.lower() == nome:
-                    encontrados.append(
-                        os.path.join(raiz, diretorio)
-                    )
-
-    return list(
-        dict.fromkeys(encontrados)
-    )
-
-
-def abrir_caminho_generico(nome):
-
-    encontrados = encontrar_caminho(nome)
-
-    if not encontrados:
-        return f"Não encontrei {nome}."
-
-    if len(encontrados) > 1:
-        return (
-            f"Encontrei {len(encontrados)} itens chamados "
-            f"{nome}. Seja mais específico."
-        )
-
-    caminho = encontrados[0]
-
-    try:
-
-        os.startfile(caminho)
-
-        return f"Abrindo {nome}."
-
-    except Exception as erro:
-
-        print(
-            f"❌ Erro ao abrir {caminho}: {erro}"
-        )
-
-        return "Não consegui abrir esse arquivo."
-    
-    
+    return _abrir_local(PASTA_ASSISTENTE / "interface.py", "a interface")

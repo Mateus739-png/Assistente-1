@@ -1,0 +1,5 @@
+# Dependencias opcionais do novo pacote vision; nao substitui as dependencias do Jarvis.
+mss>=9.0
+opencv-python>=4.8
+pytesseract>=0.3.10
+ultralytics>=8.0

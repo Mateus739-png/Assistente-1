@@ -147,3 +147,86 @@ Hello! I'm ready to help you. How can I assist you today?
 2026-10-28 09:24:47,569 | INFO | TEXTO | Interface iniciada. Estou pronto.
 2026-10-28 09:24:47,579 | INFO | TEXTO | Pronto para receber comandos.
 2026-10-28 09:24:56,686 | INFO | TEXTO | NÃ£o consegui analisar a imagem.
+2026-11-18 21:38:32,138 | INFO | TEXTO | Interface iniciada. Estou pronto.
+2026-11-18 21:38:32,148 | INFO | TEXTO | Pronto para receber comandos.
+2026-11-18 21:38:35,409 | INFO | TEXTO | Perfil público: conversa, pesquisa na web e permite abrir Chrome, Edge, Google, YouTube e calculadora. Spotify e outras automações estão bloqueados.
+2026-11-18 21:38:42,587 | INFO | TEXTO | Automações privadas ativadas.
+2026-11-18 21:38:45,999 | INFO | TEXTO | Perfil público: conversa, pesquisa na web e permite abrir Chrome, Edge, Google, YouTube e calculadora. Spotify e outras automações estão bloqueados.
+2026-11-18 21:38:47,383 | INFO | TEXTO | Automações privadas ativadas.
+2026-11-18 21:58:59,933 | INFO | TEXTO | abre o spotfify
+2026-11-18 21:58:59,935 | INFO | QWEN | abre o spotfify
+2026-11-18 21:59:03,943 | INFO | TEXTO | Erro ao processar comando:
+HTTPConnectionPool(host='127.0.0.1', port=8080): Max retries exceeded with url: / (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8080): Failed to establish a new connection: [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente"))
+2026-11-18 21:59:13,753 | INFO | TEXTO | abre o spotfy
+2026-11-18 21:59:13,777 | INFO | COMANDO | abre o spotfy | RESULTADO | Abrindo o Spotify.
+2026-11-18 21:59:13,778 | INFO | TEXTO | Abrindo o Spotify.
+2026-11-18 22:10:28,036 | INFO | TEXTO | abre o spotfy
+2026-11-18 22:10:28,038 | INFO | TEXTO | Spotify está bloqueado no perfil público.
+2026-11-18 22:10:55,481 | INFO | TEXTO | abra o spotfy
+2026-11-18 22:10:55,485 | INFO | COMANDO | abra o spotfy | RESULTADO | Abrindo o Spotify.
+2026-11-18 22:10:55,489 | INFO | TEXTO | Abrindo o Spotify.
+2026-11-18 22:13:01,937 | INFO | TEXTO | abra o spotfy
+2026-11-18 22:13:01,938 | INFO | TEXTO | Spotify está bloqueado no perfil público.
+2026-11-18 22:13:20,932 | INFO | TEXTO | abra o spotfy
+2026-11-18 22:13:20,938 | INFO | COMANDO | abra o spotfy | RESULTADO | Abrindo o Spotify.
+2026-11-18 22:13:20,941 | INFO | TEXTO | Abrindo o Spotify.
+2026-11-18 22:26:30,784 | INFO | TEXTO | Erro ao analisar o print:
+HTTPConnectionPool(host='127.0.0.1', port=8080): Max retries exceeded with url: / (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8080): Failed to establish a new connection: [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente"))
+2026-11-18 22:26:42,552 | INFO | VOZ | [silêncio]
+2026-11-18 22:26:42,553 | INFO | TEXTO | [silêncio]
+2026-11-18 22:26:42,555 | INFO | QWEN | [silêncio]
+2026-11-18 22:26:46,560 | INFO | TEXTO | Erro ao processar comando:
+HTTPConnectionPool(host='127.0.0.1', port=8080): Max retries exceeded with url: / (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8080): Failed to establish a new connection: [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente"))
+2026-11-18 22:29:00,861 | INFO | TEXTO | abra o sotify
+2026-11-18 22:29:00,864 | INFO | QWEN | abra o sotify
+2026-11-18 22:29:04,872 | INFO | TEXTO | Erro ao processar comando:
+HTTPConnectionPool(host='127.0.0.1', port=8080): Max retries exceeded with url: / (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8080): Failed to establish a new connection: [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente"))
+2026-11-18 22:29:12,655 | INFO | TEXTO | abra o spotify
+2026-11-18 22:29:12,659 | INFO | COMANDO | abra o spotify | RESULTADO | Abrindo o Spotify.
+2026-11-18 22:29:12,660 | INFO | TEXTO | Abrindo o Spotify.
+2026-11-18 22:29:40,657 | INFO | TEXTO | abra o spotfy e pesquisa 4tal e inicia a musica
+2026-11-18 22:29:40,704 | INFO | COMANDO | abra o spotfy e pesquisa 4tal e inicia a musica | RESULTADO | Pesquisando abra o  e  4tal e iniciar a musica no Spotify.
+2026-11-18 22:29:40,704 | INFO | TEXTO | Pesquisando abra o  e  4tal e iniciar a musica no Spotify.
+2026-11-18 22:30:26,470 | INFO | TEXTO | abra o spotfy e toque 4tal
+2026-11-18 22:30:26,474 | INFO | COMANDO | abra o spotfy e toque 4tal | RESULTADO | Abrindo o Spotify.
+2026-11-18 22:30:26,477 | INFO | TEXTO | Abrindo o Spotify.
+2026-11-18 22:34:53,392 | INFO | TEXTO | abra o spotify
+2026-11-18 22:34:53,399 | INFO | COMANDO | abra o spotify | RESULTADO | Abrindo o Spotify.
+2026-11-18 22:34:53,402 | INFO | TEXTO | Abrindo o Spotify.
+2026-11-18 22:35:13,691 | INFO | TEXTO | abra o spotify e toca 4tal
+2026-11-18 22:35:13,717 | INFO | COMANDO | abra o spotify e toca 4tal | RESULTADO | Pesquisando 4tal no Spotify.
+2026-11-18 22:35:13,717 | INFO | TEXTO | Pesquisando 4tal no Spotify.
+2026-11-18 22:36:03,779 | INFO | TEXTO | pesquisa galinha pintadinha no youtube
+2026-11-18 22:36:03,817 | INFO | COMANDO | pesquisa galinha pintadinha no youtube | RESULTADO | Pesquisando galinha pintadinha no YouTube.
+2026-11-18 22:36:03,817 | INFO | TEXTO | Pesquisando galinha pintadinha no YouTube.
+2026-11-18 22:52:38,052 | INFO | TEXTO | abra o spotify e toca 4tal
+2026-11-18 22:52:38,078 | INFO | COMANDO | abra o spotify e toca 4tal | RESULTADO | Pesquisando 4tal no Spotify.
+2026-11-18 22:52:38,078 | INFO | TEXTO | Pesquisando 4tal no Spotify.
+2026-11-18 22:55:20,208 | INFO | TEXTO | tocar musica 4tal
+2026-11-18 22:55:20,209 | INFO | QWEN | tocar musica 4tal
+2026-11-18 22:55:24,233 | INFO | TEXTO | Erro ao processar comando:
+HTTPConnectionPool(host='127.0.0.1', port=8080): Max retries exceeded with url: / (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8080): Failed to establish a new connection: [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente"))
+2026-11-18 22:59:08,527 | INFO | TEXTO | abra o spotify e toca 4tal
+2026-11-18 22:59:08,553 | INFO | COMANDO | abra o spotify e toca 4tal | RESULTADO | Configure SPOTIFY_CLIENT_ID em config.py e cadastre o redirect URI http://127.0.0.1:8765/callback no Spotify Developer Dashboard. Busca aberta no Spotify: Pesquisando 4tal no Spotify.
+2026-11-18 22:59:08,554 | INFO | TEXTO | Configure SPOTIFY_CLIENT_ID em config.py e cadastre o redirect URI http://127.0.0.1:8765/callback no Spotify Developer Dashboard. Busca aberta no Spotify: Pesquisando 4tal no Spotify.
+2026-11-18 22:59:44,977 | INFO | TEXTO | abra o spotify e toca 4tal
+2026-11-18 22:59:44,987 | INFO | COMANDO | abra o spotify e toca 4tal | RESULTADO | Configure SPOTIFY_CLIENT_ID em config.py e cadastre o redirect URI http://127.0.0.1:8765/callback no Spotify Developer Dashboard. Busca aberta no Spotify: Pesquisando 4tal no Spotify.
+2026-11-18 22:59:44,988 | INFO | TEXTO | Configure SPOTIFY_CLIENT_ID em config.py e cadastre o redirect URI http://127.0.0.1:8765/callback no Spotify Developer Dashboard. Busca aberta no Spotify: Pesquisando 4tal no Spotify.
+2026-11-18 23:03:47,374 | INFO | TEXTO | abra o spotify e toca 4tal
+2026-11-18 23:03:51,402 | INFO | COMANDO | abra o spotify e toca 4tal | RESULTADO | Busca por 4tal aberta; enviei Espaco ao Spotify apos 4 segundos.
+2026-11-18 23:03:51,403 | INFO | TEXTO | Busca por 4tal aberta; enviei Espaco ao Spotify apos 4 segundos.
+2026-11-18 23:05:35,332 | INFO | TEXTO | abra o spotify e toca tseluy tseluy
+2026-11-18 23:05:39,345 | INFO | COMANDO | abra o spotify e toca tseluy tseluy | RESULTADO | Busca por tseluy tseluy aberta; enviei Espaco ao Spotify apos 4 segundos.
+2026-11-18 23:05:39,346 | INFO | TEXTO | Busca por tseluy tseluy aberta; enviei Espaco ao Spotify apos 4 segundos.
+2026-11-18 23:09:38,833 | INFO | TEXTO | abra o spotify e toque tesuy funk
+2026-11-18 23:09:44,861 | INFO | COMANDO | abra o spotify e toque tesuy funk | RESULTADO | Busca por tesuy funk aberta; enviei Espaco ao Spotify apos 6 segundos.
+2026-11-18 23:09:44,861 | INFO | TEXTO | Busca por tesuy funk aberta; enviei Espaco ao Spotify apos 6 segundos.
+2026-11-18 23:14:17,322 | INFO | TEXTO | abra o spotify e toque tesuy funk
+2026-11-18 23:14:24,393 | INFO | COMANDO | abra o spotify e toque tesuy funk | RESULTADO | Busquei tesuy funk e enviei Enter para iniciar a faixa no Spotify.
+2026-11-18 23:14:24,393 | INFO | TEXTO | Busquei tesuy funk e enviei Enter para iniciar a faixa no Spotify.
+2026-11-18 23:14:41,762 | INFO | TEXTO | abra o spotify e toque 4tal
+2026-11-18 23:14:48,819 | INFO | COMANDO | abra o spotify e toque 4tal | RESULTADO | Busquei 4tal e enviei Enter para iniciar a faixa no Spotify.
+2026-11-18 23:14:48,820 | INFO | TEXTO | Busquei 4tal e enviei Enter para iniciar a faixa no Spotify.
+2026-11-18 23:15:10,234 | INFO | TEXTO | abra o spotify e toque 300 no 7
+2026-11-18 23:15:17,293 | INFO | COMANDO | abra o spotify e toque 300 no 7 | RESULTADO | Busquei 300 no 7 e enviei Enter para iniciar a faixa no Spotify.
+2026-11-18 23:15:17,293 | INFO | TEXTO | Busquei 300 no 7 e enviei Enter para iniciar a faixa no Spotify.
