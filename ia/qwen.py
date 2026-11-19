@@ -21,7 +21,6 @@ def _post_qwen(dados, timeout=120):
     ultimo_erro = erros[-1][1] if erros else RuntimeError("Não foi possível conectar ao modelo.")
     raise ultimo_erro
 
-
 def perguntar(texto):
     dados = {
         "model": QWEN_MODEL,
